@@ -1,6 +1,6 @@
 classdef ComponentClass
-    %ComponentClass Class that defines the parameters for the EOS of Peng
-    %Robison
+    % ComponentClass Class that defines the parameters for the EOS of Peng
+    % Robison
     
     properties
         % Critical Pressure (bar)
