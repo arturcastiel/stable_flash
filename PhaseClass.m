@@ -47,27 +47,38 @@ classdef PhaseClass < handle
             % Computing aki - Component Compoent Iteration Coeficient
             obj.aki = obj.compute_aki(ak);
             % Compute Mixture Parameters
-            obj.aj = obj.compute_mixture_aj(ak);
+            obj.aj = obj.compute_mixture_aj();
             %bj = obj.compute_mixture_bj(bk);
         end
         function [aki] = compute_aki(obj, ak)
-            aki = zeros(length(ak), length(obj.delta_ind));
-            for index = 1:length(obj.delta_ind)
-                k_ind = obj.delta_ind(index,1);
-                i_ind = obj.delta_ind(index,2);
-                delta = obj.delta_ki(index);
+            ind_list = generate_arrange_2(obj.num_components);
+            aki = zeros(length(ak), length(ind_list));
+            for index = 1:length(ind_list)
+                k_ind = ind_list(index,1);
+                i_ind = ind_list(index,2);
+                ref = ((obj.delta_ind(:,1) == k_ind) & ...
+                      (obj.delta_ind(:,2) == i_ind)) |  ...
+                      ((obj.delta_ind(:,1) == i_ind) & ...
+                      (obj.delta_ind(:,2) == k_ind));
+                if any(ref)
+                    delta = obj.delta_ki(ref);
+                else
+                    delta = 0;
+                end
+                  %delta = (obj.delta_ki(index);
                 aki(:,index) = (1 - delta) .* ...
                                 (ak(:,k_ind).* ak(:,i_ind)).^.5;
             end
         end
         function aj = compute_mixture_aj(obj)
             aj = zeros(length(obj.x_ij),1);
-            for index = 1:length(obj.delta_ind)
-                k_ind = obj.delta_ind(index,1);
-                i_ind = obj.delta_ind(index,2);
+            ind_list = generate_arrange_2(obj.num_components);
+            for index = 1:length(ind_list)
+                k_ind = ind_list(index,1);
+                i_ind = ind_list(index,2);
                 aki_local = obj.aki(:,index);
                 aj = aj + (obj.x_ij(:,k_ind) .* obj.x_ij(:,i_ind).* ...
-                                                aki_local(:,index));
+                                                            aki_local);
             end
         end
         function bj = compute_mixture_bj(obj)
