@@ -1,4 +1,4 @@
-classdef ComponentClass
+classdef ComponentClass <  matlab.mixin.Heterogeneous & handle
     % ComponentClass Class that defines the parameters for the EOS of Peng
     % Robison
     
@@ -17,6 +17,7 @@ classdef ComponentClass
         %% constants
         R = 83.1447 % bar cm^3 mol^(-1) K^(-1);
         %T = 90 + 273.15 % Isothermal Condition
+        symbol
         T = [300 ; 120; 303; 305]
     end
     properties (Dependent)
@@ -25,7 +26,11 @@ classdef ComponentClass
     end
 
     methods
-        function obj = ComponentClass(P_critical, T_critical, W_ac, Mw)
+        function obj = setup(obj, P_critical, T_critical, W_ac, Mw, ...
+                                                    varargin)
+            if ~isempty(varargin)
+                obj.symbol = varargin{1};
+            end
             obj.P_critical = P_critical;
             obj.T_critical = T_critical;
             obj.W_ac = W_ac;
@@ -34,7 +39,7 @@ classdef ComponentClass
         end
         
     end
-    methods (Access = private)
+    methods (Access = protected)
         function kk = compute_component_kk(obj)
             kk1 = 0.37464 + 1.54226 * obj.W_ac - 0.26992 * obj.W_ac.^2;
             kk2 = 0.379642 + 1.48503 * obj.W_ac - ...
