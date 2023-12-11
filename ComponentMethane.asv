@@ -15,11 +15,9 @@ classdef ComponentMethane < ComponentClass
                 obj.physical_props.t_c, obj.physical_props.af, ...
                 obj.physical_props.mw, obj.physical_props.symbol);
         end
-        function delta = AqueousBinaryCoefficient(obj, isAqCells)
+        function delta = AqueousBinaryCoefficient(isAqCells)
            T = obj.T(isAqCells);
-           Tr = T./obj.T_critical;
-           delta = 1.1120 - 1.7369*obj.W_ac^(-0.1) + ...
-              (1.1001+0.8360*obj.W_ac)*Tr -(0.15742+1.0988*obj.W_ac)*Tr.^2;
+           Tr = ob
         end
     end
 end

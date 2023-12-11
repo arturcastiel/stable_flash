@@ -103,9 +103,8 @@ classdef PhaseClass < handle
             end
         end
         function bj = compute_mixture_bj(obj, bk)
-            bj = zeros(length(obj.x_ij),1);
-            bks = 1
-               
+sum(repmat(bk', obj.num_cells,1).*obj.x_ij,2)
+
         end
         function isAq = checkIfAqueous(obj)
             if ~any(obj.compWater,2)

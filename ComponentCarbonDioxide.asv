@@ -18,7 +18,7 @@ classdef ComponentCarbonDioxide < ComponentClass
         function delta = AqueousBinaryCoefficient(obj, isAqCells)
            T = obj.T(isAqCells);
            Tr = T./obj.T_critical;
-           delta = -1.104324 + (2.040527*Tr) -(1.417707*Tr.^2) + ...
+           delta = -1.104324 + (2.040527*Tr) -(1.417707*Tr.^2 + ...
                                                     0.379003*Tr.^3;
         end        
     end
