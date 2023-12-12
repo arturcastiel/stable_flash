@@ -1,6 +1,5 @@
 classdef PhaseClass < handle
-    %UNTITLED5 Summary of this class goes here
-    %   Detailed explanation goes here
+    %PhaseClass Class that describes a given phase of this class.
     
     properties
         %% List with object that represent each component in this phase
@@ -17,6 +16,8 @@ classdef PhaseClass < handle
         %% Phase aj bj Parameters (Peng Robison Equation)
         aj
         bj
+        Aj
+        Bj
         %% Boolean that states if Phase is Aqueos
         isAq = false;
         %% Component's Symbols
@@ -31,6 +32,8 @@ classdef PhaseClass < handle
         T = 90 + 273.15 % Isothermal Condition
         delta_ind
         num_cells
+        %%  Peng Robison's Compressiblity Factor (big Z)
+        Z_comp
     end
     
     methods
@@ -46,7 +49,7 @@ classdef PhaseClass < handle
             obj.x_ij = x_ij;
             obj.num_cells = length(x_ij);
             obj.initalize_eos();
-           % obj.delta_ki = delta_ki;
+            obj.Z_comp =  obj.find_compressibility_factor();
         end
         
     end
@@ -62,8 +65,12 @@ classdef PhaseClass < handle
             % Computing aki - Component Compoent Iteration Coeficient
             obj.aki = obj.compute_aki(ak);
             % Compute Mixture Parameters
+            %% needed for the fugacity computation 
             obj.aj = obj.compute_mixture_aj();
             obj.bj = obj.compute_mixture_bj(bk);
+            %% coeficient of the peng robson equation 
+            obj.Aj = obj.compute_mixture_Aj();
+            obj.Bj = obj.compute_mixture_Bj();
         end
         function [aki] = compute_aki(obj, ak)
             ind_list = generate_arrange_2(obj.num_components);
@@ -103,9 +110,16 @@ classdef PhaseClass < handle
             end
         end
         function bj = compute_mixture_bj(obj, bk)
-sum(repmat(bk', obj.num_cells,1).*obj.x_ij,2)
-
+            bj = sum(repmat(bk', obj.num_cells,1).*obj.x_ij,2);
         end
+        function Aj = compute_mixture_Aj(obj)
+            Aj = obj.aj.*obj.Components(1, 1).P ...
+               ./(obj.R.*obj.Components(1, 1).T).^2;
+        end
+        function Bj = compute_mixture_Bj(obj)
+            Bj = obj.bj.*obj.Components(1, 1).P ...
+               ./(obj.R.*obj.Components(1, 1).T);
+        end        
         function isAq = checkIfAqueous(obj)
             if ~any(obj.compWater,2)
                 isAq = false;
@@ -113,29 +127,43 @@ sum(repmat(bk', obj.num_cells,1).*obj.x_ij,2)
                 water_fraction = obj.x_ij(:,obj.compWater);
                 isAq = water_fraction > 0.8;
             end
-        end    
+        end  
+        
+        function [zf] = find_compressibility_factor(obj)
+            zf = zeros(obj.num_cells,1);
+            a = ones(obj.num_cells, 1);
+            b = - (1 - obj.Bj);
+            c = obj.Aj - 3*obj.Bj.^2 - 2*obj.Bj;
+            d = - (obj.Aj.*obj.Bj - obj.Bj.^2 - obj.Bj.^3);
+            [Z] = solve_cubic_eq(a,b,c,d);
+            real_roots_ref = ~iscomplexVEC(Z);
+            Z(~real_roots_ref) = nan;
+            zmin = min(Z,[],2);
+            zmax = max(Z,[],2);
+            num_real_roots = sum(real_roots_ref,2);
+            Z(~real_roots_ref) = 0;
+            ref_one_root = num_real_roots == 1;
+            zf(ref_one_root) = sum(Z(ref_one_root,:),2);
+            zf(~ref_one_root) = find_root_min_free_gibenergy(zmin,zmax, ...
+                                            obj.Aj, obj.Bj, ~ref_one_root);
+        end
     end
 end
 
 
-function [delta_ind_sorted, delta_sorted] = read_delta_table(comp_symbols)
-filepath = fullfile(pwd,"physical_parameter/bip_data.csv");
-all_table = readtable(filepath);
-comp12 = [all_table.symbols1 all_table.symbols2];
-ref =  all(ismember(comp12,comp_symbols),2);
-symbols = [all_table.symbols1(ref) all_table.symbols2(ref)];
-delta = all_table.delta(ref);
-delta_ind = zeros(size(symbols));
-for index = 1:length(comp_symbols)
-    local_symbol = comp_symbols(index);
-    symbol_ref = ismember(symbols, local_symbol);
-    delta_ind(symbol_ref) = index;
+function z = find_root_min_free_gibenergy(zmin, zmax, A,B,ref_multroots)
+zmin = zmin(ref_multroots);
+zmax = zmax(ref_multroots);
+z = zeros(size(zmin));
+A = A(ref_multroots);
+B = B(ref_multroots);
+delta1 = 1+sqrt(2);
+delta2 = 1-sqrt(2);
+dG = (zmax-zmin) + log((zmin-B)./(zmax-B)) - A./(B*(delta2-delta1)) + ...
+                            log((zmin+delta1*B).*(zmax+delta2*B)./ ...
+                                ((zmin+delta2*B).*(zmax+delta1*B)));
+ref_pos = dG >=0;
+z(ref_pos) = zmin(ref_pos);
+z(~ref_pos) = zmax(~ref_pos);
 end
-%% ensuring that column1 < column2 and sortingrows
-ref = delta_ind(:,1) > delta_ind(:,2);
-auxvar = delta_ind(ref,1);
-delta_ind(ref,1) = delta_ind(ref,2);
-delta_ind(ref,2) = auxvar;
-[delta_ind_sorted, ref] = sortrows(delta_ind);
-delta_sorted = delta(ref);
-end
+

@@ -18,7 +18,11 @@ classdef ComponentClass <  matlab.mixin.Heterogeneous & handle
         R = 83.1447 % bar cm^3 mol^(-1) K^(-1);
         %T = 90 + 273.15 % Isothermal Condition
         symbol
-        T = [300 ; 120; 303; 305]
+%         T = [300; 310; 320; 330]
+%         P = [100; 150; 200; 250]
+        
+        T = 300*ones(4, 1)
+        P = 100*ones(4, 1)
     end
     properties (Dependent)
         %% 
